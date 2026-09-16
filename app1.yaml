@@ -4,7 +4,7 @@ metadata:
   name: flask-aws-monitor
   namespace: argocd
 spec:
-  project: my-project
+  project: gitops-project
   source:
     repoURL: https://github.com/DXNOAM/devops-course-app-June-2026.git
     path: .
