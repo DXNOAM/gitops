@@ -6,7 +6,7 @@ metadata:
 spec:
   project: my-project
   source:
-    repoURL: https://github.com/DXNOAM/devops-course-app-June-2026.git
+    repoURL: https://github.com/elevy99927/argo-demo-repo.git
     path: .
   destination:
     server: https://kubernetes.default.svc
