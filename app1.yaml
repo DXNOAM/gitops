@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: demo-app
+  name: flask-aws-monitor
   namespace: argocd
 spec:
   project: my-project
   source:
-    repoURL: https://github.com/elevy99927/argo-demo-repo.git
+    repoURL: https://github.com/DXNOAM/devops-course-app-June-2026.git
     path: .
   destination:
     server: https://kubernetes.default.svc
