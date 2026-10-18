@@ -1,4 +1,4 @@
-# GitOps - Lab 6: Dynamic Generator
+# GitOps - Dynamic Generator
 
 This lab implements GitOps with an Argo CD ApplicationSet and Git Directory
 Generators. It defines two applications and selects only the `qa` environment
