@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: systems-qa
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - git:
+        repoURL: https://github.com/DXNOAM/gitops.git
+        revision: main
+        directories:
+          - path: systems/team-a/qa
+        values:
+          appName: flask-aws-monitor
+          project: gitops-project
+          sourceRepo: https://github.com/DXNOAM/devops-course-app-June-2026.git
+          sourceRevision: HEAD
+          sourcePath: .
+    - git:
+        repoURL: https://github.com/DXNOAM/gitops.git
+        revision: main
+        directories:
+          - path: systems/team-b/qa
+        values:
+          appName: my-nginx-app
+          project: default
+          sourceRepo: https://github.com/DXNOAM/gitops.git
+          sourceRevision: main
+          sourcePath: '{{ .path.path }}'
+  template:
+    metadata:
+      name: '{{ .values.appName }}-{{ .path.basename }}'
+      labels:
+        environment: qa
+        team: '{{ index .path.segments 1 }}'
+    spec:
+      project: '{{ .values.project }}'
+      source:
+        repoURL: '{{ .values.sourceRepo }}'
+        targetRevision: '{{ .values.sourceRevision }}'
+        path: '{{ .values.sourcePath }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .values.appName }}-{{ .path.basename }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
