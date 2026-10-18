@@ -15,7 +15,7 @@ spec:
           - path: systems/team-a/qa
         values:
           appName: flask-aws-monitor
-          project: gitops-project
+          project: default
           sourceRepo: https://github.com/DXNOAM/devops-course-app-June-2026.git
           sourceRevision: HEAD
           sourcePath: .
