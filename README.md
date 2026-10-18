@@ -1,15 +1,15 @@
-# GitOps — Lab 6: Dynamic Generator
+# GitOps - Lab 6: Dynamic Generator
 
-מימוש תרגיל GitOps באמצעות Argo CD ApplicationSet ו־Git Directory Generator.
-המטרה היא להגדיר שתי אפליקציות ולבחור לפריסה רק את סביבת `qa`.
-התרגיל משתמש בשתי האפליקציות המקוריות מתוך `manifests/`:
+This lab implements GitOps with an Argo CD ApplicationSet and Git Directory
+Generators. It defines two applications and selects only the `qa` environment
+for deployment, using the two original applications from `manifests/`:
 
-- `app1.yaml`: Application של Argo CD עבור `flask-aws-monitor`.
-- `app2.yaml`: Deployment של NGINX בשם `my-nginx-app`, עם שני replicas.
+- `app1.yaml`: an Argo CD Application for `flask-aws-monitor`.
+- `app2.yaml`: an NGINX Deployment named `my-nginx-app`, with two replicas.
 
-**הכול הוכן מקומית בלבד. לא בוצעו commit, push, העלאה ל־GitHub או פריסה לקלאסטר.**
+**All changes were prepared locally. No commit, push, GitHub upload, or cluster deployment has been performed.**
 
-## מבנה התיקיות
+## Directory Structure
 
 ```text
 gitops/
@@ -41,40 +41,45 @@ gitops/
             └── app2.yaml
 ```
 
-קובצי האפליקציות תחת `systems/` הם עותקים זהים לקבצים המקוריים ב־`manifests/`.
-קובצי המקור נשארו ללא שינוי.
+The application files under `systems/` are identical copies of the original files
+in `manifests/`. The original files remain unchanged.
 
-## קבצים מרכזיים
+## Key Files
 
-| קובץ | תפקיד |
+| File | Purpose |
 | --- | --- |
-| [manifests/app1.yaml](manifests/app1.yaml) | הגדרת Application המקורית של Flask |
-| [manifests/app2.yaml](manifests/app2.yaml) | ה־Deployment המקורי של NGINX |
-| [applicationsets/qa-applicationset.yaml](applicationsets/qa-applicationset.yaml) | הגילוי של תיקיות QA ויצירת שני ה־Applications |
-| [systems/team-a/qa/app1.yaml](systems/team-a/qa/app1.yaml) | עותק הגדרת Flask לצורך מבנה התרגיל |
-| [systems/team-b/qa/app2.yaml](systems/team-b/qa/app2.yaml) | ה־Deployment שממנו נפרס NGINX בסביבת QA |
+| [manifests/app1.yaml](manifests/app1.yaml) | Original Flask Application definition |
+| [manifests/app2.yaml](manifests/app2.yaml) | Original NGINX Deployment |
+| [applicationsets/qa-applicationset.yaml](applicationsets/qa-applicationset.yaml) | Discovers the QA directories and creates the two Applications |
+| [systems/team-a/qa/app1.yaml](systems/team-a/qa/app1.yaml) | Copy of the Flask definition documenting the lab structure |
+| [systems/team-b/qa/app2.yaml](systems/team-b/qa/app2.yaml) | Deployment used to deploy NGINX in QA |
 
-## שתי אפליקציות QA בלבד
+## Exactly Two QA Applications
 
-ב־ApplicationSet אחד מוגדרים שני Git Directory Generators:
+A single ApplicationSet contains two Git Directory Generators:
 
-| תיקייה שנבחרת | Application שנוצר | מקור הפריסה | Namespace |
+| Selected Directory | Generated Application | Deployment Source | Namespace |
 | --- | --- | --- | --- |
-| `systems/team-a/qa` | `flask-aws-monitor-qa` | הריפו והנתיב מתוך `manifests/app1.yaml` | `flask-aws-monitor-qa` |
-| `systems/team-b/qa` | `my-nginx-app-qa` | `systems/team-b/qa` בריפו GitOps | `my-nginx-app-qa` |
+| `systems/team-a/qa` | `flask-aws-monitor-qa` | Repository and path from `manifests/app1.yaml` | `flask-aws-monitor-qa` |
+| `systems/team-b/qa` | `my-nginx-app-qa` | `systems/team-b/qa` in the GitOps repository | `my-nginx-app-qa` |
 
-רק תיקיות `qa` נבחרות. תיקיות `dev`,‏ `prd` ו־`devops` אינן נבחרות,
-כך שה־ApplicationSet יוצר בדיוק שני Applications במבנה הנוכחי.
-ה־generators מזהים את קיום התיקיות ב־Git ומשתמשים ב־`values` להעברת
-פרטי המקור השונים אל ה־template המשותף.
+Only the two QA directories are selected. The `dev`, `prd`, and `devops`
+directories are excluded from selection, so the ApplicationSet creates exactly
+two Applications with the current structure. The generators discover the
+directories in Git and use `values` to pass each application's source settings
+to the shared template.
 
-הנתיבים מוגדרים במפורש כ־`systems/team-a/qa` ו־`systems/team-b/qa`.
-הוספת צוות חדש לתיקיית `systems/` מחייבת הוספת generator מתאים;
-ההגדרה הנוכחית אינה בוחרת תיקיות QA של צוותים נוספים אוטומטית.
+The paths are explicitly configured as `systems/team-a/qa` and
+`systems/team-b/qa`. Adding another team under `systems/` requires adding a
+corresponding generator; the current configuration does not automatically select
+QA directories belonging to additional teams.
 
-`app1.yaml` הוא כבר Application ולא Deployment. כדי להימנע מיצירת
-Application נוסף שמכיל בתוכו Application של Flask, ה־ApplicationSet
-משתמש ישירות ב־`repoURL`, ב־`path` וב־`project` שלו:
+### Flask
+
+`app1.yaml` already defines an Argo CD Application. To keep the total at two
+Applications and avoid a parent Application containing another Flask
+Application, the ApplicationSet directly uses its `repoURL`, `path`, and
+`project` settings:
 
 ```text
 repoURL: https://github.com/DXNOAM/devops-course-app-June-2026.git
@@ -82,49 +87,65 @@ path: .
 project: gitops-project
 ```
 
-עותקי `app1.yaml` תחת `systems/team-a/` מתעדים את מבנה התרגיל ואינם נפרסים
-כמשאבים מקוננים. שינוי בפרטי המקור או הפרויקט של Flask בעתיד דורש עדכון
-גם בערכי ה־generator הראשון. בהיעדר revision בקובץ המקורי, Flask משתמש ב־`HEAD`.
+The copies of `app1.yaml` under `systems/team-a/` document the lab structure;
+they are not deployed as nested Application resources. If Flask's source or
+project settings change, update the first generator's values as well. Flask uses
+`HEAD` because the original file does not specify a revision.
 
-NGINX נפרס מה־Deployment המקורי, כולל `nginx:latest`, שני replicas
-והתווית `app: nginx`. ה־Application שלו משתמש בפרויקט המובנה `default`.
-שמות ה־Applications וה־namespaces מקבלים את הסיומת `qa` לצורך הפרדה.
-מדיניות הסנכרון כוללת:
+### NGINX
 
-- סנכרון אוטומטי של שינויים ממקור ה־Git של כל אפליקציה.
-- `prune: true`: הסרת משאבים שהוסרו ממקור הפריסה.
-- `selfHeal: true`: תיקון סטייה בין מצב הקלאסטר להגדרה ב־Git.
-- `CreateNamespace=true`: יצירת namespace היעד בעת הצורך.
+NGINX uses the original Deployment, including the `nginx:latest` image, two
+replicas, and the `app: nginx` label. Its Application uses the built-in `default`
+project. Both Application names and destination namespaces use the `qa` suffix
+to separate the QA environment.
+
+### Synchronization Policy
+
+- Automated synchronization applies changes from each application's Git source.
+- `prune: true` removes resources deleted from the deployment source.
+- `selfHeal: true` corrects drift between the cluster state and the Git definition.
+- `CreateNamespace=true` creates the destination namespace when needed.
 
 ## Ingress
 
-לשמירת מבנה התמונה, `systems/devops/{dev,qa}/ingress.yaml` כולל Ingress
-ו־Service שמפנה ל־NGINX לפי התווית הקיימת `app: nginx`.
-הוא אינו כולל Deployment נוסף ואינו נבחר ב־ApplicationSet.
-אם משתמשים בו בנפרד בעתיד, יש לפרוס אותו באותו namespace של NGINX,
-להתקין Ingress controller שתומך במחלקה `nginx` ולהגדיר את כתובת ה־host.
-ניתן לבדוק את NGINX גם ללא Ingress או Service באמצעות port-forward ל־Deployment.
+To retain the layout shown in the lab reference, each
+`systems/devops/{dev,qa}/ingress.yaml` contains an Ingress and a Service that
+selects NGINX using its existing `app: nginx` label. These files contain no
+additional Deployment and are not selected by the ApplicationSet.
 
-## דרישות להפעלה עתידית
+If you use an Ingress file separately in the future, deploy it in the same
+namespace as NGINX, install an Ingress controller supporting the `nginx` class,
+and configure the hostname to resolve to the controller. You can also check
+NGINX without an Ingress or Service by forwarding a port to its Deployment.
 
-נדרשים Argo CD עם ApplicationSet controller ב־namespace בשם `argocd`,
-גישה לשני הריפוזיטוריז, ופרויקט קיים `gitops-project` שמורשה לקרוא את ריפו Flask
-ולפרוס ל־namespace בשם `flask-aws-monitor-qa`.
-גם פרויקט `default` צריך לאפשר את מקור GitOps ואת namespace היעד של NGINX.
-משאבים בריפו Flask שמגדירים namespace מפורש עשויים לדרוש התאמה לסביבת QA;
-תוכן הריפו החיצוני לא נבדק במסגרת ההכנה המקומית.
+## Prerequisites for Future Deployment
 
-Argo CD קורא מה־remote ואינו רואה שינויים מקומיים. ההגדרה מוכנה לבדיקה
-מקומית, אך לא תופעל מול תוכן הריפו הקיים עד שתיקיות התרגיל יהיו זמינות בו.
-אין לבצע העלאה או פריסה במסגרת ההכנה הנוכחית.
+- Kubernetes and Argo CD with the ApplicationSet controller in the `argocd` namespace.
+- Argo CD access to both Git repositories.
+- An existing `gitops-project` AppProject that permits the Flask repository and
+  deployment to the `flask-aws-monitor-qa` namespace.
+- A `default` AppProject that permits the GitOps repository and deployment to the
+  `my-nginx-app-qa` namespace.
 
-לאחר החלטה מפורשת להפעיל ובהתקיים הדרישות, פקודת ההתקנה מתוך שורש הריפו היא:
+Resources in the Flask repository that explicitly specify a namespace may need
+adjustment for QA. The contents of that external repository were not inspected
+during local preparation.
+
+Argo CD reads the remote repository and cannot see local changes. This
+configuration is ready for local review, but the lab directories must be
+available in the configured remote revision before the generators can discover
+them. Do not upload or deploy anything as part of the current local preparation.
+
+## Future Deployment and Verification
+
+After an explicit decision to deploy and once the prerequisites are met, run
+this installation command from the repository root:
 
 ```powershell
 kubectl apply -f applicationsets/qa-applicationset.yaml
 ```
 
-פקודות בדיקה לשימוש לאחר הפעלה:
+After deployment, verify the generated Applications and workloads:
 
 ```powershell
 kubectl get applicationsets systems-qa -n argocd
@@ -134,19 +155,23 @@ kubectl get deployment my-nginx-app -n my-nginx-app-qa
 kubectl port-forward -n my-nginx-app-qa deployment/my-nginx-app 8080:80
 ```
 
-לאחר port-forward ניתן לפתוח `http://localhost:8080`.
-אין להפעיל במקביל את `manifests/app1.yaml` או את העותקים שלו באופן ידני
-לצד ה־ApplicationSet, כדי להימנע מפריסה נפרדת נוספת של Flask.
+While port forwarding is active, open `http://localhost:8080` to check NGINX.
 
-## בדיקות שבוצעו מקומית
+Do not manually apply `manifests/app1.yaml` or its copies alongside the
+ApplicationSet, since doing so would create an additional, separate Flask
+Application.
 
-- פענוח קובצי ה־YAML באמצעות `kubectl patch --local` ללא פנייה ל־API של קלאסטר.
-- השוואת ששת עותקי האפליקציות תחת `systems/` לקובצי המקור: התוכן זהה.
-- בדיקת בחירת הנתיבים והצבת פרמטרי ה־template המקומית: מתקבלות בדיוק
-  `flask-aws-monitor-qa` ו־`my-nginx-app-qa`.
-- בדיקת התאמה בין ה־Service האופציונלי לבין התוויות והפורט של NGINX.
+## Local Validation Completed
 
-הבדיקות אינן כוללות הפעלה של ApplicationSet controller, אימות מול סכמת CRD
-או בדיקת זמינות של Flask בקלאסטר.
+- Parsed the YAML files using `kubectl patch --local`, without contacting a cluster API.
+- Compared all six application copies under `systems/` with the originals; their contents are identical.
+- Checked directory selection and local template parameter substitution; the result contains exactly
+  `flask-aws-monitor-qa` and `my-nginx-app-qa`.
+- Checked that the optional Service matches the existing NGINX labels and port.
 
-תיעוד רשמי: [Argo CD Git Directory Generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Git/).
+These checks did not run the ApplicationSet controller, validate against the CRD
+schema, or verify Flask availability in a cluster.
+
+## Reference
+
+[Argo CD Git Directory Generator documentation](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Git/)
