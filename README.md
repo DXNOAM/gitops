@@ -2,12 +2,10 @@
 
 This lab implements GitOps with an Argo CD ApplicationSet and Git Directory
 Generators. It defines two applications and selects only the `qa` environment
-for deployment, using the two original applications from `manifests/`:
+for deployment:
 
-- `app1.yaml`: an Argo CD Application for `flask-aws-monitor`.
-- `app2.yaml`: an NGINX Deployment named `my-nginx-app`, with two replicas.
-
-**All changes were prepared locally. No commit, push, GitHub upload, or cluster deployment has been performed.**
+- Flask uses the Helm output that Jenkins publishes to `workloads/qa/flask-aws-monitor/app.yaml`.
+- NGINX uses the Deployment in `systems/team-b/qa/app2.yaml`, with two replicas.
 
 ## Directory Structure
 
@@ -60,7 +58,7 @@ A single ApplicationSet contains two Git Directory Generators:
 
 | Selected Directory | Generated Application | Deployment Source | Namespace |
 | --- | --- | --- | --- |
-| `systems/team-a/qa` | `flask-aws-monitor-qa` | Repository and path from `manifests/app1.yaml` | `flask-aws-monitor-qa` |
+| `systems/team-a/qa` | `flask-aws-monitor-qa` | `workloads/qa/flask-aws-monitor` in this repository | `flask-aws-monitor-qa` |
 | `systems/team-b/qa` | `my-nginx-app-qa` | `systems/team-b/qa` in the GitOps repository | `my-nginx-app-qa` |
 
 Only the two QA directories are selected. The `dev`, `prd`, and `devops`
@@ -76,21 +74,13 @@ QA directories belonging to additional teams.
 
 ### Flask
 
-`app1.yaml` already defines an Argo CD Application. To keep the total at two
-Applications and avoid a parent Application containing another Flask
-Application, the ApplicationSet directly uses its `repoURL`, `path`, and
-`project` settings:
+The ApplicationSet discovers Flask through `systems/team-a/qa` and creates
+`flask-aws-monitor-qa`. It reads the workload from `main` in this repository
+at `workloads/qa/flask-aws-monitor`. Jenkins renders and publishes `app.yaml`
+there after pushing the image with the same build tag to Docker Hub.
 
-```text
-repoURL: https://github.com/DXNOAM/devops-course-app-June-2026.git
-path: .
-project: gitops-project
-```
-
-The copies of `app1.yaml` under `systems/team-a/` document the lab structure;
-they are not deployed as nested Application resources. If Flask's source or
-project settings change, update the first generator's values as well. Flask uses
-`HEAD` because the original file does not specify a revision.
+The original `manifests/app1.yaml` and its copies under `systems/team-a/`
+document the lab structure. Manage the QA workload through `systems-qa`.
 
 ### NGINX
 
@@ -121,20 +111,14 @@ NGINX without an Ingress or Service by forwarding a port to its Deployment.
 ## Prerequisites for Future Deployment
 
 - Kubernetes and Argo CD with the ApplicationSet controller in the `argocd` namespace.
-- Argo CD access to both Git repositories.
-- An existing `gitops-project` AppProject that permits the Flask repository and
-  deployment to the `flask-aws-monitor-qa` namespace.
-- A `default` AppProject that permits the GitOps repository and deployment to the
-  `my-nginx-app-qa` namespace.
+- Argo CD read access to this GitOps repository.
+- The `default` AppProject permits this repository and deployment to both QA namespaces.
+- A successful Jenkins build of the application `main` branch has published
+  `workloads/qa/flask-aws-monitor/app.yaml` to this repository's `main` branch.
+  Configure Jenkins using the [application README](https://github.com/DXNOAM/devops-course-app-June-2026#jenkins-setup-and-stages).
 
-Resources in the Flask repository that explicitly specify a namespace may need
-adjustment for QA. The contents of that external repository were not inspected
-during local preparation.
-
-Argo CD reads the remote repository and cannot see local changes. This
-configuration is ready for local review, but the lab directories must be
-available in the configured remote revision before the generators can discover
-them. Do not upload or deploy anything as part of the current local preparation.
+Publish the first Flask manifest before applying the updated ApplicationSet,
+so Argo CD can already read the new source path.
 
 ## Future Deployment and Verification
 
