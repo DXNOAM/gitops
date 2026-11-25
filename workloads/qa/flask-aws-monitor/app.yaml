@@ -1,0 +1,79 @@
+---
+# Source: flask-aws-monitor/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flask-aws-monitor-cm
+  labels:
+    helm.sh/chart: flask-aws-monitor-0.1.0
+    app.kubernetes.io/name: flask-aws-monitor
+    app.kubernetes.io/instance: flask-aws-monitor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  PORT: "5001"
+  GUNICORN_WORKERS: "2"
+  GUNICORN_THREADS: "4"
+
+---
+# Source: flask-aws-monitor/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-aws-monitor
+  labels:
+    app: flask-aws-monitor
+    helm.sh/chart: flask-aws-monitor-0.1.0
+    app.kubernetes.io/name: flask-aws-monitor
+    app.kubernetes.io/instance: flask-aws-monitor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    app: flask-aws-monitor
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5001
+      targetPort: 5001
+
+---
+# Source: flask-aws-monitor/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-aws-monitor
+  labels:
+    app: flask-aws-monitor
+    helm.sh/chart: flask-aws-monitor-0.1.0
+    app.kubernetes.io/name: flask-aws-monitor
+    app.kubernetes.io/instance: flask-aws-monitor
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app: flask-aws-monitor
+  replicas: 2
+  template:
+    metadata:
+      annotations:
+        checksum/config: 689dc5ff57b92b5a83d256affcfac5ebb1e50f7a4935420b04e45441b11c1526
+      labels:
+        app: flask-aws-monitor
+        helm.sh/chart: flask-aws-monitor-0.1.0
+        app.kubernetes.io/name: flask-aws-monitor
+        app.kubernetes.io/instance: flask-aws-monitor
+        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      containers:
+        - name: flask-aws-monitor
+          image: "noamyonassi/flask-aws-monitor:5"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+          envFrom:
+            - configMapRef:
+                name: flask-aws-monitor-cm
